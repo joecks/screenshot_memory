@@ -27,7 +27,7 @@ fun createJob(): JobInfo {
 }
 
 @RequiresApi(Build.VERSION_CODES.N)
-fun scheduleJob(context: Context) {
+fun scheduleWatchNewlyCreatedImages(context: Context) {
     val js: JobScheduler = context.getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
     js.schedule(createJob())
 }
@@ -43,21 +43,21 @@ class PhotosContentJob : JobService() {
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
-    override fun onStartJob(p0: JobParameters?): Boolean {
-        scheduleJob(this)
-        Log.d(PhotosContentJob::class.java.name, "START JOB: ${p0?.triggeredContentUris?.map { it.toString() }?.reduce { acc, uri -> "$acc,$uri" }}")
+    override fun onStartJob(parameter: JobParameters?): Boolean {
+        scheduleWatchNewlyCreatedImages(this)
+        Log.d(PhotosContentJob::class.java.name, "START JOB: ${parameter?.triggeredContentUris?.map { it.toString() }?.reduce { acc, uri -> "$acc,$uri" }}")
 
         val listOfPaths = mutableListOf<String>()
 
-        p0?.triggeredContentUris?.map { it.pathSegments.last() }?.toSet()?.forEach { id ->
+        parameter?.triggeredContentUris?.map { it.pathSegments.last() }?.toSet()?.forEach { id ->
             Log.d(PhotosContentJob::class.java.name, "Check id $id")
 
             val cursor = contentResolver.query(
                     MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                     PROJECTION, "${MediaStore.Images.ImageColumns._ID} = '$id'", null, null)
 
-            if (cursor.moveToFirst()) {
-                cursor?.getString(1)?.let { listOfPaths.add(it) }
+            if (cursor?.moveToFirst() == true) {
+                cursor.getString(1)?.let { listOfPaths.add(it) }
             }
 
             cursor?.close()
@@ -65,6 +65,14 @@ class PhotosContentJob : JobService() {
 
 
         Log.d(PhotosContentJob::class.java.name, "Paths: ${if (listOfPaths.isEmpty()) "" else listOfPaths.reduce { acc, uri -> "$acc,$uri" }}")
+
+        // ANDROID P does not work, needs to be started from a forground context, or notification
+//        if (listOfPaths.isNotEmpty()) {
+//            val intent = Intent(this, MainActivity::class.java)
+//            intent.putExtra(MainActivity.EXTRA_SCREENSHOT_PATH, listOfPaths[0])
+//            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+//            startActivity(intent)
+//        }
 
         return false
     }
