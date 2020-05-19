@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -12,8 +13,8 @@ class ListScreenshotMemoriesBloc {
   get memoriesStream => _memories.stream;
 
   ListScreenshotMemoriesBloc(DatabaseRepository databaseRepository) {
-    databaseRepository.screenshotMemories().then((memories) {
-      _memories.add(memories);
+    databaseRepository.screenshotMemoriesStream().listen((event) {
+      _memories.add(event);
     });
   }
 
@@ -41,7 +42,7 @@ class ListScreenshotMemoriesPage extends StatelessWidget {
                 final neededHeight = 200.0;
                 final availableWidth = MediaQuery.of(context).size.width;
                 final count = (availableWidth / maxItemWidth).ceil();
-                final ratio = ((availableWidth/ count) - 16) / neededHeight ;
+                final ratio = max( ((availableWidth/ count) - 16) / neededHeight, 0.5);
 
                 return GridView.builder(
                     itemCount: itemList.length,

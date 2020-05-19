@@ -3,11 +3,11 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:screenshot_memory/pages/list_screenshot_memories_page.dart';
 import 'package:screenshot_memory/repositories/DatabaseRepository.dart';
-import 'package:screenshot_memory/views/buttons.dart';
 import 'package:screenshot_memory/views/strings.dart';
 
 enum MenuAction { alarm, edit, crop, close }
@@ -31,7 +31,8 @@ class Tag {
   static final _COLOR_REGEXP = RegExp("#COLOR\\((\\d+)\\)");
 
   static Tag parse(String tagString) {
-    final match = int.tryParse(_COLOR_REGEXP.firstMatch(tagString).group(1));
+    final matches = _COLOR_REGEXP.firstMatch(tagString);
+    final match = matches != null ? int.tryParse(matches.group(1)) : null;
     return match != null ? Tag(Color(match), true) : null;
   }
 }
@@ -39,9 +40,11 @@ class Tag {
 class EditOptionsBloc {
   final _imageController = BehaviorSubject<File>();
   final _tagsController = BehaviorSubject<List<Tag>>();
-  final _navigationController = BehaviorSubject<Function>();
+  final _navigationController = BehaviorSubject<Function(BuildContext)>();
   final DatabaseRepository _databaseRepository;
   EditOptionsArguments _arguments;
+  String _name;
+  String _description = "";
 
   Iterable<Tag> _tags = <Tag>[
     Tag(Color(0xffff3b30), false),
@@ -64,6 +67,8 @@ class EditOptionsBloc {
 
   Stream<Iterable<Tag>> get tags => _tagsController.stream;
 
+  Stream<Function(BuildContext)> get navigation => _navigationController.stream;
+
   EditOptionsBloc(this._databaseRepository) {
     _tagsController.add(_tags);
   }
@@ -74,16 +79,20 @@ class EditOptionsBloc {
 
   void onDonePressed() {
     if (_arguments != null) {
-      _databaseRepository.insertScreenshotMemory(ScreenshotMemory(
-        "", _arguments.imagePath, "Great", _tags.toSet()
-      )).then((id) {
+      _databaseRepository
+          .insertScreenshotMemory(ScreenshotMemory(
+              _name ?? _arguments.imagePath
+                ..split('/').last,
+              _arguments.imagePath,
+              _description,
+              _tags.where((it) => it.selected).toSet()))
+          .then((id) {
         print('CREATED $id');
       });
     }
-    _navigationController.add((context){
+    _navigationController.add((context) {
       Navigator.popAndPushNamed(context, ListScreenshotMemoriesPage.routeName);
     });
-
   }
 
   void dispose() {
@@ -103,6 +112,14 @@ class EditOptionsBloc {
           : tag;
     }).toList();
     _tagsController.add(_tags);
+  }
+
+  onNameTyped(String newString) {
+    _name = newString;
+  }
+
+  onDescriptionTyped(String newString) {
+    _description = newString;
   }
 }
 
@@ -134,23 +151,25 @@ class EditOptionsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textController = TextEditingController();
-
     return Consumer<EditOptionsBloc>(builder: (context, bloc, child) {
       bloc.onNewArguments(arguments);
+      bloc.navigation.listen((event) {
+        event.call(context);
+      });
       return Scaffold(
           appBar: AppBar(
             actions: bloc.menuActions
-                .map((menuAction) => CircleIconButton(
-                    icon: menuAction.iconData,
-                    onPressed: () {
-                      bloc.onActionPressed(menuAction);
-                    }))
+                .map((menuAction) => IconButton(
+                      onPressed: () {
+                        bloc.onActionPressed(menuAction);
+                      },
+                      icon: Icon(menuAction.iconData),
+                    ))
                 .toList(),
             title: FlatButton(
               child: ThemedText(
-                "done",
-                textTheme: Theme.of(context).textTheme.title.copyWith(),
+                "menuaction_done",
+                textTheme: Theme.of(context).textTheme.headline6,
                 capitalization: Capitalization.all_caps,
               ),
               onPressed: () {
@@ -163,10 +182,14 @@ class EditOptionsPage extends StatelessWidget {
               child: Column(
                 children: <Widget>[
                   ScreenshotImagePreview(bloc),
-                  EditTextWithHeader("screemshot_preview_title_name"),
                   TagsWithHeader(bloc),
                   EditTextWithHeader(
+                    "screemshot_preview_title_name",
+                    (newString) => bloc.onNameTyped(newString),
+                  ),
+                  EditTextWithHeader(
                     "screemshot_preview_title_description",
+                    (newString) => bloc.onDescriptionTyped(newString),
                     expandable: true,
                   ),
                 ],
@@ -207,7 +230,12 @@ class TagsWithHeader extends StatelessWidget {
               return Row(
                 children: tags.map((tag) {
                   return RawMaterialButton(
-                    child: tag.selected ? Icon(Icons.check) : null,
+                    child: tag.selected
+                        ? Icon(
+                            Icons.check,
+                            color: Colors.white,
+                          )
+                        : null,
                     constraints: BoxConstraints.tight(Size.square(32)),
                     shape: CircleBorder(),
                     fillColor: tag.color,
@@ -230,35 +258,32 @@ class TagsWithHeader extends StatelessWidget {
 
 class EditTextWithHeader extends StatelessWidget {
   const EditTextWithHeader(
-    this._headerKey, {
+    this._headerKey,
+    this.callback, {
     Key key,
     this.expandable = false,
   }) : super(key: key);
 
   final String _headerKey;
   final bool expandable;
+  final Function(String) callback;
 
   @override
   Widget build(BuildContext context) {
+    final controller = TextEditingController();
+    controller.addListener(() {
+      callback.call(controller.value.toString());
+    });
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Column(
-        children: <Widget>[
-          Container(
-            alignment: Alignment.topLeft,
-            child: ThemedText(
-              _headerKey,
-              textTheme: Theme.of(context).textTheme.title,
-            ),
-          ),
-          TextField(
-            maxLines: expandable ? null : 1,
-            minLines: 1,
-          ),
-          Divider(
-            color: Colors.white,
-          )
-        ],
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          hintText: FlutterI18n.translate(context, _headerKey),
+        ),
+        maxLines: expandable ? null : 1,
+        minLines: 1,
       ),
     );
   }

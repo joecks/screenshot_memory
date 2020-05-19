@@ -1,4 +1,5 @@
 import 'package:path/path.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:screenshot_memory/pages/edit_options_page.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -22,6 +23,8 @@ abstract class DatabaseRepository {
 
   Future<List<ScreenshotMemory>> screenshotMemories();
 
+  Stream<List<ScreenshotMemory>> screenshotMemoriesStream();
+
   dispose();
 }
 
@@ -35,20 +38,37 @@ class SqLiteDatabaseRepository extends DatabaseRepository {
   static const _COL_CREATED_DATE = 'created';
   static const _COL_LAST_USED_DATE = 'lastUsed';
 
+  BehaviorSubject<List<ScreenshotMemory>> _allScreenshotsStream;
+  bool _dirty = true;
+
+  SqLiteDatabaseRepository() {
+    this._allScreenshotsStream = BehaviorSubject(onListen: () {
+      if (_dirty) {
+        screenshotMemories().then((value) {
+          // DO nothing all will be done by screenShotMemories method
+        });
+      }
+    });
+  }
+
   @override
   Future<int> insertScreenshotMemory(ScreenshotMemory screenshotMemory) async {
     final db = await _getDatabase();
+    _dirty = true;
     return await db.insert(_TABLE_NAME, _dbValues(screenshotMemory));
   }
 
   @override
   Future<List<ScreenshotMemory>> screenshotMemories() async {
+    _dirty = false;
     final db = await _getDatabase();
     final results = await db.query(_TABLE_NAME);
 
-    return List.generate(results.length, (i) {
+    final list = List.generate(results.length, (i) {
       return _fromQuery(results[i]);
     });
+    _allScreenshotsStream.add(list);
+    return list;
   }
 
   Future<Database> _getDatabase() async {
@@ -89,7 +109,7 @@ class SqLiteDatabaseRepository extends DatabaseRepository {
   }
 
   DateTime _parseDate(int result) {
-    return DateTime(result);
+    return DateTime.fromMillisecondsSinceEpoch(result);
   }
 
   Set<Tag> _parseTags(String result) {
@@ -101,5 +121,12 @@ class SqLiteDatabaseRepository extends DatabaseRepository {
   }
 
   @override
-  dispose() {}
+  Stream<List<ScreenshotMemory>> screenshotMemoriesStream() {
+    return _allScreenshotsStream.stream;
+  }
+
+  @override
+  dispose() {
+    _allScreenshotsStream.close();
+  }
 }

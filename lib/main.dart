@@ -58,13 +58,14 @@ class ScreenshotMemoryApp extends StatelessWidget {
         ],
         title: 'Screenshot Memory',
         theme: ThemeData(
-          scaffoldBackgroundColor: Colors.black,
-          primaryColor: Colors.black,
-          accentColor: Colors.white,
-          iconTheme: IconTheme.of(context).copyWith(color: Colors.white),
-          textTheme: Theme.of(context)
-              .textTheme
-              .apply(bodyColor: Colors.white, displayColor: Colors.white),
+          primarySwatch: Colors.amber
+//          scaffoldBackgroundColor: Colors.black,
+//          primaryColor: Colors.black,
+//          accentColor: Colors.white,
+//          iconTheme: IconTheme.of(context).copyWith(color: Colors.white),
+//          textTheme: Theme.of(context)
+//              .textTheme
+//              .apply(bodyColor: Colors.white, displayColor: Colors.white),
         ),
         //TODO need concept to decide who routes where
         initialRoute: ListScreenshotMemoriesPage.routeName,
