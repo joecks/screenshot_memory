@@ -26,6 +26,8 @@ abstract class DatabaseRepository {
   Stream<List<ScreenshotMemory>> screenshotMemoriesStream();
 
   dispose();
+
+  void onResume();
 }
 
 class SqLiteDatabaseRepository extends DatabaseRepository {
@@ -62,7 +64,7 @@ class SqLiteDatabaseRepository extends DatabaseRepository {
   Future<List<ScreenshotMemory>> screenshotMemories() async {
     _dirty = false;
     final db = await _getDatabase();
-    final results = await db.query(_TABLE_NAME);
+    final results = await db.query(_TABLE_NAME, orderBy: "$_COL_LAST_USED_DATE desc");
 
     final list = List.generate(results.length, (i) {
       return _fromQuery(results[i]);
@@ -128,5 +130,12 @@ class SqLiteDatabaseRepository extends DatabaseRepository {
   @override
   dispose() {
     _allScreenshotsStream.close();
+  }
+
+  @override
+  void onResume() {
+    screenshotMemories().then((value) {
+      // DO nothing all will be done by screenShotMemories method
+    });
   }
 }

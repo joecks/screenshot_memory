@@ -91,6 +91,7 @@ class EditOptionsBloc {
       });
     }
     _navigationController.add((context) {
+      _navigationController.add((ctx) {});
       Navigator.popAndPushNamed(context, ListScreenshotMemoriesPage.routeName);
     });
   }
@@ -272,7 +273,7 @@ class EditTextWithHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = TextEditingController();
     controller.addListener(() {
-      callback.call(controller.value.toString());
+      callback.call(controller.value.text);
     });
 
     return Padding(

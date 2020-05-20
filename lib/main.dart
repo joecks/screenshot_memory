@@ -92,6 +92,17 @@ class ListenToExternalSignalsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final callback = (call) {
+      print("method called: $call");
+      if (call.method == "onScreenshotPathReceived") {
+        Navigator.popAndPushNamed(context, EditOptionsPage.routeName,
+            arguments: EditOptionsArguments(call.arguments));
+      }
+
+      return null;
+    };
+
+    platform.setMethodCallHandler(callback);
     screenshotPath().then((path) {
       Navigator.popAndPushNamed(context, EditOptionsPage.routeName,
           arguments: EditOptionsArguments(path));

@@ -19,7 +19,7 @@ class MainActivity : FlutterActivity() {
         const val EXTRA_SCREENSHOT_PATH = "screenshot_path"
     }
 
-    private var screenshotPath : String? = null;
+    private var screenshotPath: String? = null;
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         GeneratedPluginRegistrant.registerWith(flutterEngine)
@@ -46,15 +46,6 @@ class MainActivity : FlutterActivity() {
         }
 
         super.onCreate(savedInstanceState)
-
-
-
-//        if (intent.data != null) {
-//            MethodChannel(flutterEngine.dartExecutor, "newIntent").invokeMethod("onScreenshotPathReceived", intent.data.toString())
-//        }
-
-
-//        scheduleWatchNewlyCreatedImages(this)
     }
 
     private fun queryMediaForPath(uri: Uri): String? {
@@ -73,8 +64,16 @@ class MainActivity : FlutterActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        Log.d(MainActivity::class.java.simpleName, "New Intent!")
 
-        Log.d(MainActivity::class.java.simpleName, "New intent received");
+        (intent.getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM) as? Uri)?.let {
+            val screenshotPath = queryMediaForPath(it)
+            if (screenshotPath != null) {
+                flutterEngine?.dartExecutor.let {
+                    MethodChannel(it, "newIntent").invokeMethod("onScreenshotPathReceived", screenshotPath)
+                }
+            }
+        }
     }
 }
 
