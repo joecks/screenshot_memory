@@ -44,21 +44,19 @@ class ScreenshotMemoryApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        localizationsDelegates: [
-          FlutterI18nDelegate(
-              translationLoader:
-                  FileTranslationLoader(basePath: "assets/i18n")),
-          GlobalCupertinoLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-        ],
-        supportedLocales: [
-          // Add new languages here
-          const Locale("en"),
-        ],
-        title: 'Screenshot Memory',
-        theme: ThemeData(
-          primarySwatch: Colors.amber
+      localizationsDelegates: [
+        FlutterI18nDelegate(
+            translationLoader: FileTranslationLoader(basePath: "assets/i18n")),
+        GlobalCupertinoLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
+      supportedLocales: [
+        // Add new languages here
+        const Locale("en"),
+      ],
+      title: 'Screenshot Memory',
+      theme: ThemeData(primarySwatch: Colors.amber
 //          scaffoldBackgroundColor: Colors.black,
 //          primaryColor: Colors.black,
 //          accentColor: Colors.white,
@@ -66,24 +64,19 @@ class ScreenshotMemoryApp extends StatelessWidget {
 //          textTheme: Theme.of(context)
 //              .textTheme
 //              .apply(bodyColor: Colors.white, displayColor: Colors.white),
-        ),
-        //TODO need concept to decide who routes where
-        initialRoute: ListScreenshotMemoriesPage.routeName,
-        routes: {
-          EditOptionsPage.routeName: (context) =>
-              EditOptionsPage(ModalRoute.of(context).settings.arguments),
-          FtuPage.routeName: (context) =>
-              ListenToExternalSignalsWidget(FtuPage()),
-          ListScreenshotMemoriesPage.routeName: (context) =>
-              ListenToExternalSignalsWidget(ListScreenshotMemoriesPage())
-        });
+          ),
+      //TODO need concept to decide who routes where
+      initialRoute: ListScreenshotMemoriesPage.routeName,
+      onGenerateRoute: (settings) {
+        return settings.name == '/' ? null : _createRoute(settings);
+      },
+    );
   }
 }
 
 class ListenToExternalSignalsWidget extends StatelessWidget {
   Future<String> screenshotPath() async {
     return await platform.invokeMethod("getScreenshotPath");
-    //return "/storage/emulated/0/Pictures/Screenshots/Screenshot_20200512-162924.png";
   }
 
   ListenToExternalSignalsWidget(this.child);
@@ -110,4 +103,32 @@ class ListenToExternalSignalsWidget extends StatelessWidget {
 
     return child;
   }
+}
+
+final _routes = {
+  "/" : (context) => null,
+  EditOptionsPage.routeName: (context) =>
+      EditOptionsPage(ModalRoute.of(context).settings.arguments),
+  FtuPage.routeName: (context) => ListenToExternalSignalsWidget(FtuPage()),
+  ListScreenshotMemoriesPage.routeName: (context) =>
+      ListenToExternalSignalsWidget(ListScreenshotMemoriesPage())
+};
+
+Route _createRoute(RouteSettings settings) {
+  return PageRouteBuilder(
+    pageBuilder: (context, animation, secondaryAnimation) =>
+        _routes[settings.name].call(context),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      var begin = Offset(0.0, 1.0);
+      var end = Offset.zero;
+      var curve = Curves.ease;
+
+      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+      return SlideTransition(
+        position: animation.drive(tween),
+        child: child,
+      );
+    },
+  );
 }

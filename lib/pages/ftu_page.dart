@@ -2,10 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-import 'package:screenshot_memory/views/buttons.dart';
 import 'package:screenshot_memory/views/strings.dart';
 
 class FtuBloc {
