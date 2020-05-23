@@ -28,6 +28,8 @@ abstract class DatabaseRepository {
   dispose();
 
   void onResume();
+
+  Future<ScreenshotMemory> screenshotMemory(int screenshotId);
 }
 
 class SqLiteDatabaseRepository extends DatabaseRepository {
@@ -137,5 +139,16 @@ class SqLiteDatabaseRepository extends DatabaseRepository {
     screenshotMemories().then((value) {
       // DO nothing all will be done by screenShotMemories method
     });
+  }
+
+  @override
+  Future<ScreenshotMemory> screenshotMemory(int screenshotId) async {
+    final db = await _getDatabase();
+    final results = await db.query(_TABLE_NAME, where: "$_COL_ID = $screenshotId");
+    if (results.isEmpty) {
+      throw "No such id($screenshotId) in $_TABLE_NAME";
+    } else {
+      return _fromQuery(results[0]);
+    }
   }
 }

@@ -3,9 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:screenshot_memory/pages/details/screenshot_details.dart';
 import 'package:screenshot_memory/pages/edit_options_page.dart';
 import 'package:screenshot_memory/pages/ftu_page.dart';
-import 'package:screenshot_memory/pages/list_screenshot_memories_page.dart';
+import 'package:screenshot_memory/pages/list/list_screenshot_memories_page.dart';
 import 'package:screenshot_memory/repositories/DatabaseRepository.dart';
 
 const platform = const MethodChannel('newIntent');
@@ -13,6 +14,7 @@ const platform = const MethodChannel('newIntent');
 // DEBUG INFO /storage/emulated/0/Pictures/Screenshots/Screenshot_20200512-162924.png
 
 void main() {
+  // TODO can not provide blocs in here but they need to be created on the level of pages
   WidgetsFlutterBinding.ensureInitialized();
   runApp(MultiProvider(
     providers: [
@@ -24,16 +26,6 @@ void main() {
         create: (_) => SqLiteDatabaseRepository(),
         dispose: (_, repo) => repo.dispose(),
       ),
-      ProxyProvider<DatabaseRepository, ListScreenshotMemoriesBloc>(
-        dispose: (_, bloc) => bloc.dispose(),
-        update: (_, DatabaseRepository databaseRepository, __) =>
-            ListScreenshotMemoriesBloc(databaseRepository),
-      ),
-      ProxyProvider<DatabaseRepository, EditOptionsBloc>(
-        dispose: (_, bloc) => bloc.dispose(),
-        update: (_, DatabaseRepository databaseRepository, __) =>
-            EditOptionsBloc(databaseRepository),
-      )
     ],
     child: ScreenshotMemoryApp(),
   ));
@@ -106,18 +98,19 @@ class ListenToExternalSignalsWidget extends StatelessWidget {
 }
 
 final _routes = {
-  "/" : (context) => null,
-  EditOptionsPage.routeName: (context) =>
-      EditOptionsPage(ModalRoute.of(context).settings.arguments),
-  FtuPage.routeName: (context) => ListenToExternalSignalsWidget(FtuPage()),
-  ListScreenshotMemoriesPage.routeName: (context) =>
-      ListenToExternalSignalsWidget(ListScreenshotMemoriesPage())
+  "/": (context) => null,
+  EditOptionsPage.routeName: (context, arguments) => EditOptionsPage(arguments),
+  FtuPage.routeName: (context, _) => ListenToExternalSignalsWidget(FtuPage()),
+  ListScreenshotMemoriesPage.routeName: (context, _) =>
+      ListenToExternalSignalsWidget(ListScreenshotMemoriesPage()),
+  ScreenshotDetailsPage.routeName: (context, arguments) =>
+      ScreenshotDetailsPage(arguments),
 };
 
 Route _createRoute(RouteSettings settings) {
   return PageRouteBuilder(
     pageBuilder: (context, animation, secondaryAnimation) =>
-        _routes[settings.name].call(context),
+        _routes[settings.name].call(context, settings.arguments),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       var begin = Offset(0.0, 1.0);
       var end = Offset.zero;

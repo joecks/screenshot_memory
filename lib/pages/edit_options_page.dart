@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:screenshot_memory/pages/list_screenshot_memories_page.dart';
+import 'package:screenshot_memory/pages/list/list_screenshot_memories_page.dart';
 import 'package:screenshot_memory/repositories/DatabaseRepository.dart';
 import 'package:screenshot_memory/views/strings.dart';
 
@@ -40,9 +40,9 @@ class Tag {
 class EditOptionsBloc {
   final _imageController = BehaviorSubject<File>();
   final _tagsController = BehaviorSubject<List<Tag>>();
-  final _navigationController = BehaviorSubject<Function(BuildContext)>();
   final DatabaseRepository _databaseRepository;
-  EditOptionsArguments _arguments;
+  final BuildContext _context;
+  final EditOptionsArguments _arguments;
   String _name;
   String _description = "";
 
@@ -67,10 +67,9 @@ class EditOptionsBloc {
 
   Stream<Iterable<Tag>> get tags => _tagsController.stream;
 
-  Stream<Function(BuildContext)> get navigation => _navigationController.stream;
-
-  EditOptionsBloc(this._databaseRepository) {
+  EditOptionsBloc(this._databaseRepository, this._context, this._arguments) {
     _tagsController.add(_tags);
+    _imageController.add(File(_arguments.imagePath));
   }
 
   void onActionPressed(MenuAction action) {
@@ -90,20 +89,12 @@ class EditOptionsBloc {
         print('CREATED $id');
       });
     }
-    _navigationController.add((context) {
-      _navigationController.add((ctx) {});
-      Navigator.popAndPushNamed(context, ListScreenshotMemoriesPage.routeName);
-    });
+    Navigator.popAndPushNamed(_context, ListScreenshotMemoriesPage.routeName);
   }
 
   void dispose() {
     _imageController.close();
     _tagsController.close();
-  }
-
-  void onNewArguments(EditOptionsArguments arguments) {
-    _arguments = arguments;
-    _imageController.add(File(arguments.imagePath));
   }
 
   onTagPressed(Tag selectedTag) {
@@ -152,52 +143,48 @@ class EditOptionsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<EditOptionsBloc>(builder: (context, bloc, child) {
-      bloc.onNewArguments(arguments);
-      bloc.navigation.listen((event) {
-        event.call(context);
-      });
-      return Scaffold(
-          appBar: AppBar(
-            actions: bloc.menuActions
-                .map((menuAction) => IconButton(
-                      onPressed: () {
-                        bloc.onActionPressed(menuAction);
-                      },
-                      icon: Icon(menuAction.iconData),
-                    ))
-                .toList(),
-            title: FlatButton(
-              child: ThemedText(
-                "menuaction_done",
-                textTheme: Theme.of(context).textTheme.headline6,
-                capitalization: Capitalization.all_caps,
-              ),
-              onPressed: () {
-                bloc.onDonePressed();
-              },
+    final bloc = EditOptionsBloc(Provider.of(context), context, arguments);
+
+    return Scaffold(
+        appBar: AppBar(
+          actions: bloc.menuActions
+              .map((menuAction) => IconButton(
+                    onPressed: () {
+                      bloc.onActionPressed(menuAction);
+                    },
+                    icon: Icon(menuAction.iconData),
+                  ))
+              .toList(),
+          title: FlatButton(
+            child: ThemedText(
+              "menuaction_done",
+              textTheme: Theme.of(context).textTheme.headline6,
+              capitalization: Capitalization.all_caps,
+            ),
+            onPressed: () {
+              bloc.onDonePressed();
+            },
+          ),
+        ),
+        body: SingleChildScrollView(
+          child: SafeArea(
+            child: Column(
+              children: <Widget>[
+                ScreenshotImagePreview(bloc),
+                TagsWithHeader(bloc),
+                EditTextWithHeader(
+                  "screemshot_preview_title_name",
+                  (newString) => bloc.onNameTyped(newString),
+                ),
+                EditTextWithHeader(
+                  "screemshot_preview_title_description",
+                  (newString) => bloc.onDescriptionTyped(newString),
+                  expandable: true,
+                ),
+              ],
             ),
           ),
-          body: SingleChildScrollView(
-            child: SafeArea(
-              child: Column(
-                children: <Widget>[
-                  ScreenshotImagePreview(bloc),
-                  TagsWithHeader(bloc),
-                  EditTextWithHeader(
-                    "screemshot_preview_title_name",
-                    (newString) => bloc.onNameTyped(newString),
-                  ),
-                  EditTextWithHeader(
-                    "screemshot_preview_title_description",
-                    (newString) => bloc.onDescriptionTyped(newString),
-                    expandable: true,
-                  ),
-                ],
-              ),
-            ),
-          ));
-    });
+        ));
   }
 }
 
