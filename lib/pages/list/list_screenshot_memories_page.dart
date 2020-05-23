@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:screenshot_memory/pages/edit_options_page.dart';
 import 'package:screenshot_memory/pages/list/list_screenshot_bloc.dart';
 import 'package:screenshot_memory/repositories/DatabaseRepository.dart';
 import 'package:screenshot_memory/widgets/Lifecycle.dart';
@@ -89,16 +90,7 @@ class ScreenshotListItem extends StatelessWidget {
             buildFadeInImage(item, 120, 150),
             Padding(
               padding: const EdgeInsets.all(8.0).copyWith(left: 0, right: 0),
-              child: Row(
-                children: item.tags.map((it) {
-                  return Container(
-                    margin: EdgeInsets.all(2),
-                    constraints: BoxConstraints.tight(Size.square(12)),
-                    decoration:
-                        BoxDecoration(color: it.color, shape: BoxShape.circle),
-                  );
-                }).toList(),
-              ),
+              child: buildTagsRow(item.tags),
             )
           ],
         ),

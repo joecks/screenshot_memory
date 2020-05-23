@@ -24,9 +24,33 @@ class ScreenshotDetailsPage extends StatelessWidget {
               return SingleChildScrollView(
                 child: Column(
                   children: [
+                    if (snapshot.data.tags != null &&
+                        snapshot.data.tags.isNotEmpty)
+                      Container(
+                        alignment: Alignment.topLeft,
+                        padding: EdgeInsets.all(16),
+                        child: buildTagsRow(snapshot.data.tags),
+                      ),
+                    if (snapshot.data != null)
+                      Container(
+                          alignment: Alignment.topLeft,
+                          padding: EdgeInsets.all(16),
+                          child: Text(
+                            snapshot.data.name,
+                            style: Theme.of(context).textTheme.headline6,
+                          )),
                     if (snapshot.data != null)
                       buildFadeInImage(snapshot.data, null,
-                          MediaQuery.of(context).size.width)
+                          MediaQuery.of(context).size.width),
+                    if (snapshot.data != null &&
+                        snapshot.data.description.isNotEmpty)
+                      Container(
+                          alignment: Alignment.topLeft,
+                          padding: EdgeInsets.all(16),
+                          child: Text(
+                            snapshot.data.description,
+                            style: Theme.of(context).textTheme.bodyText1,
+                          )),
                   ],
                 ),
               );
