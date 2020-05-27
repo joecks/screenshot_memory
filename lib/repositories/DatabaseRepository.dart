@@ -20,6 +20,8 @@ class ScreenshotMemory {
 
 abstract class DatabaseRepository {
   Future<int> insertScreenshotMemory(ScreenshotMemory screenshotMemory);
+  Future<int> updateScreenshotMemory(int id,
+      {String description, String name, Set<Tag> tags});
 
   Future<List<ScreenshotMemory>> screenshotMemories();
 
@@ -66,7 +68,8 @@ class SqLiteDatabaseRepository extends DatabaseRepository {
   Future<List<ScreenshotMemory>> screenshotMemories() async {
     _dirty = false;
     final db = await _getDatabase();
-    final results = await db.query(_TABLE_NAME, orderBy: "$_COL_LAST_USED_DATE desc");
+    final results =
+        await db.query(_TABLE_NAME, orderBy: "$_COL_LAST_USED_DATE desc");
 
     final list = List.generate(results.length, (i) {
       return _fromQuery(results[i]);
@@ -96,12 +99,14 @@ class SqLiteDatabaseRepository extends DatabaseRepository {
       _COL_DESCRIPTION: memory.description,
       _COL_CREATED_DATE: memory.createDate.millisecondsSinceEpoch,
       _COL_LAST_USED_DATE: memory.lastUsedDate.millisecondsSinceEpoch,
-      _COL_TAGS: memory.tags.isEmpty
-          ? ""
-          : memory.tags
-              .map((tag) => tag.toDbString())
-              .reduce((a, acc) => " $a , $acc")
+      _COL_TAGS: tagsToDbString(memory.tags)
     };
+  }
+
+  String tagsToDbString(Set<Tag> tags) {
+    return tags.isEmpty
+        ? ""
+        : tags.map((tag) => tag.toDbString()).reduce((a, acc) => " $a , $acc");
   }
 
   ScreenshotMemory _fromQuery(Map<String, dynamic> result) {
@@ -144,11 +149,26 @@ class SqLiteDatabaseRepository extends DatabaseRepository {
   @override
   Future<ScreenshotMemory> screenshotMemory(int screenshotId) async {
     final db = await _getDatabase();
-    final results = await db.query(_TABLE_NAME, where: "$_COL_ID = $screenshotId");
+    final results =
+        await db.query(_TABLE_NAME, where: "$_COL_ID = $screenshotId");
     if (results.isEmpty) {
       throw "No such id($screenshotId) in $_TABLE_NAME";
     } else {
       return _fromQuery(results[0]);
     }
+  }
+
+  @override
+  Future<int> updateScreenshotMemory(int id,
+      {String description, String name, Set<Tag> tags}) async {
+    final db = await _getDatabase();
+    final values = {
+      if (description != null) _COL_DESCRIPTION: description,
+      if (name != null) _COL_NAME: name,
+      if (tags != null) _COL_TAGS: tagsToDbString(tags),
+      _COL_LAST_USED_DATE: DateTime.now().millisecondsSinceEpoch
+    };
+    _dirty = true;
+    return await db.update(_TABLE_NAME, values, where: "$_COL_ID = '$id'");
   }
 }

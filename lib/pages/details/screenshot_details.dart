@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:screenshot_memory/pages/details/screenshot_details_bloc.dart';
-import 'package:screenshot_memory/pages/edit_options_page.dart';
+import 'package:screenshot_memory/pages/edit_options/edit_options_bloc.dart';
 import 'package:screenshot_memory/repositories/DatabaseRepository.dart';
 import 'package:screenshot_memory/widgets/widgetFactories.dart';
 
@@ -17,10 +17,11 @@ class ScreenshotDetailsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bloc = ScreenshotDetailsBloc(
-        Provider.of<DatabaseRepository>(context), _parameters);
+        Provider.of<DatabaseRepository>(context), _parameters, context);
 
     return Scaffold(
-        appBar: defaultAppBar(context, actions: [MenuAction.edit]),
+        appBar: defaultAppBar(context,
+            actions: [MenuAction.edit], onActionPressed: bloc.onActionPressed),
         body: StreamBuilder<ScreenshotMemory>(
             stream: bloc.memories,
             builder: (context, snapshot) {

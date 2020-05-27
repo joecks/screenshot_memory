@@ -42,14 +42,25 @@ class EditOptionsPage extends StatelessWidget {
               children: <Widget>[
                 ScreenshotImagePreview(bloc),
                 TagsWithHeader(bloc),
-                EditTextWithHeader(
-                  "screemshot_preview_title_name",
-                  (newString) => bloc.onNameTyped(newString),
-                ),
-                EditTextWithHeader(
-                  "screemshot_preview_title_description",
-                  (newString) => bloc.onDescriptionTyped(newString),
-                  expandable: true,
+                StreamBuilder<String>(
+                    stream: bloc.name,
+                    builder: (context, snapshot) {
+                      return EditTextWithHeader(
+                        "screemshot_preview_title_name",
+                        (newString) => bloc.onNameTyped(newString),
+                        text: snapshot.data,
+                      );
+                    }),
+                StreamBuilder<String>(
+                  stream: bloc.description,
+                  builder: (context, snapshot) {
+                    return EditTextWithHeader(
+                      "screemshot_preview_title_description",
+                      (newString) => bloc.onDescriptionTyped(newString),
+                      expandable: true,
+                      text: snapshot.data,
+                    );
+                  }
                 ),
               ],
             ),
@@ -77,18 +88,17 @@ class TagsWithHeader extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 8),
             child: ThemedText(
               "screemshot_preview_title_tags",
-              textTheme: Theme.of(context).textTheme.title,
+              textTheme: Theme.of(context).textTheme.headline6,
             ),
           ),
           StreamBuilder(
             stream: _bloc.tags,
-            builder: (context, AsyncSnapshot<Iterable<Tag>> tagsSnapshot) {
-              final tags = tagsSnapshot.data ?? <Tag>[];
-
+            builder: (context, AsyncSnapshot<Map<Tag, bool>> tagsSnapshot) {
+              final tags = tagsSnapshot.data ?? Map<Tag, bool>();
               return Row(
-                children: tags.map((tag) {
+                children: tags.entries.map((tag) {
                   return RawMaterialButton(
-                    child: tag.selected
+                    child: tag.value
                         ? Icon(
                             Icons.check,
                             color: Colors.white,
@@ -96,9 +106,9 @@ class TagsWithHeader extends StatelessWidget {
                         : null,
                     constraints: BoxConstraints.tight(Size.square(32)),
                     shape: CircleBorder(),
-                    fillColor: tag.color,
+                    fillColor: tag.key.color,
                     onPressed: () {
-                      _bloc.onTagPressed(tag);
+                      _bloc.onTagPressed(tag.key);
                     },
                   );
                 }).toList(),
@@ -117,20 +127,23 @@ class TagsWithHeader extends StatelessWidget {
 class EditTextWithHeader extends StatelessWidget {
   const EditTextWithHeader(
     this._headerKey,
-    this.callback, {
+    this._callback, {
     Key key,
     this.expandable = false,
+    this.text,
   }) : super(key: key);
 
   final String _headerKey;
   final bool expandable;
-  final Function(String) callback;
+  final String text;
+  final Function(String) _callback;
 
   @override
   Widget build(BuildContext context) {
     final controller = TextEditingController();
+    controller.text = text;
     controller.addListener(() {
-      callback.call(controller.value.text);
+      _callback.call(controller.value.text);
     });
 
     return Padding(

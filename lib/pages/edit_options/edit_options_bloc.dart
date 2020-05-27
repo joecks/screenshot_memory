@@ -16,10 +16,19 @@ class EditOptionsArguments {
 }
 
 class Tag {
-  Tag(this.color, this.selected);
+  static final defaultTags = <Tag>[
+    Tag(Color(0xffff3b30)),
+    Tag(Color(0xffff9500)),
+    Tag(Color(0xffffcc00)),
+    Tag(Color(0xff4CD964)),
+    Tag(Color(0xff5AC8FA)),
+    Tag(Color(0xff007AFF)),
+    Tag(Color(0xff5856D6))
+  ];
+
+  Tag(this.color);
 
   final Color color;
-  final bool selected;
 
   String toDbString() {
     return "#COLOR(${color.value})";
@@ -30,29 +39,30 @@ class Tag {
   static Tag parse(String tagString) {
     final matches = _COLOR_REGEXP.firstMatch(tagString);
     final match = matches != null ? int.tryParse(matches.group(1)) : null;
-    return match != null ? Tag(Color(match), true) : null;
+    return match != null ? Tag(Color(match)) : null;
   }
-}
 
+  @override
+  int get hashCode => color.hashCode;
+
+  @override
+  bool operator ==(other) =>
+      other is Tag ? color == other.color : this == other;
+}
 
 class EditOptionsBloc {
   final _imageController = BehaviorSubject<File>();
-  final _tagsController = BehaviorSubject<List<Tag>>();
+  final _tagsController = BehaviorSubject<Map<Tag, bool>>();
+  final _nameController = BehaviorSubject<String>();
+  final _descriptionController = BehaviorSubject<String>();
   final DatabaseRepository _databaseRepository;
   final BuildContext _context;
   final EditOptionsArguments _arguments;
   String _name;
   String _description = "";
-
-  Iterable<Tag> _tags = <Tag>[
-    Tag(Color(0xffff3b30), false),
-    Tag(Color(0xffff9500), false),
-    Tag(Color(0xffffcc00), false),
-    Tag(Color(0xff4CD964), false),
-    Tag(Color(0xff5AC8FA), false),
-    Tag(Color(0xff007AFF), false),
-    Tag(Color(0xff5856D6), false)
-  ];
+  String _path = "";
+  Map<Tag, bool> _tags =
+      Map.fromIterable(Tag.defaultTags, key: (it) => it, value: (_) => false);
 
   final List<MenuAction> menuActions = <MenuAction>[
     MenuAction.alarm,
@@ -62,12 +72,29 @@ class EditOptionsBloc {
   ];
 
   Stream<File> get image => _imageController.stream;
-
-  Stream<Iterable<Tag>> get tags => _tagsController.stream;
+  Stream<Map<Tag, bool>> get tags => _tagsController.stream;
+  Stream<String> get name => _nameController.stream;
+  Stream<String> get description => _descriptionController.stream;
 
   EditOptionsBloc(this._databaseRepository, this._context, this._arguments) {
-    _tagsController.add(_tags);
-    _imageController.add(File(_arguments.imagePath));
+    if (_arguments.id == null) {
+      _tagsController.add(_tags);
+      _path = _arguments.imagePath;
+      _imageController.add(File(_path));
+    } else {
+      this._databaseRepository.screenshotMemory(_arguments.id).then((it) {
+        it.tags.forEach((tag) {
+          _tags[tag] = true;
+        });
+        _tagsController.add(_tags);
+        _path = it.path;
+        _description = it.description;
+        _name = it.name;
+        _nameController.add(_name);
+        _descriptionController.add(_description);
+        _imageController.add(File(_path));
+      });
+    }
   }
 
   void onActionPressed(MenuAction action) {
@@ -75,19 +102,27 @@ class EditOptionsBloc {
   }
 
   void onDonePressed() {
-    if (_arguments != null) {
+    final tags =
+        _tags.entries.where((it) => it.value).map((e) => e.key).toSet();
+    if (_arguments.id == null) {
       _databaseRepository
           .insertScreenshotMemory(ScreenshotMemory(
               _name ?? _arguments.imagePath
                 ..split('/').last,
               _arguments.imagePath,
               _description,
-              _tags.where((it) => it.selected).toSet()))
+              tags))
           .then((id) {
         print('CREATED $id');
+        Navigator.popAndPushNamed(
+            _context, ListScreenshotMemoriesPage.routeName);
       });
+    } else {
+      _databaseRepository
+          .updateScreenshotMemory(_arguments.id,
+              name: _name, description: _description, tags: tags)
+          .then((value) => Navigator.pop(_context, true));
     }
-    Navigator.popAndPushNamed(_context, ListScreenshotMemoriesPage.routeName);
   }
 
   void dispose() {
@@ -96,11 +131,7 @@ class EditOptionsBloc {
   }
 
   onTagPressed(Tag selectedTag) {
-    _tags = _tags.map((tag) {
-      return tag.color == selectedTag.color
-          ? Tag(tag.color, !tag.selected)
-          : tag;
-    }).toList();
+    _tags[selectedTag] = !_tags[selectedTag];
     _tagsController.add(_tags);
   }
 

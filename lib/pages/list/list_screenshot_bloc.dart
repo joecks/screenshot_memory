@@ -33,6 +33,6 @@ class ListScreenshotMemoriesBloc {
 
   void onItemClicked(id) {
     Navigator.pushNamed(_buildContext, ScreenshotDetailsPage.routeName,
-        arguments: ScreenshotsDetailsParameters(id));
+        arguments: ScreenshotsDetailsParameters(id)).then((value) => databaseRepository.onResume());
   }
 }
