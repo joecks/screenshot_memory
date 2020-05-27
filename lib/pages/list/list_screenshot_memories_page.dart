@@ -1,8 +1,6 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:screenshot_memory/pages/edit_options_page.dart';
 import 'package:screenshot_memory/pages/list/list_screenshot_bloc.dart';
 import 'package:screenshot_memory/repositories/DatabaseRepository.dart';
 import 'package:screenshot_memory/widgets/Lifecycle.dart';
@@ -17,7 +15,7 @@ class ListScreenshotMemoriesPage extends StatelessWidget {
     return LifecycleWidget(
       doOnResume: bloc.onResume(),
       child: Scaffold(
-        appBar: defaultAppBar(),
+        appBar: defaultAppBar(context),
         body: SafeArea(
           child: StreamBuilder<List<ScreenshotMemory>>(
               stream: bloc.memoriesStream,

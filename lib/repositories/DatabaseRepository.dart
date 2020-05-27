@@ -1,6 +1,6 @@
 import 'package:path/path.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:screenshot_memory/pages/edit_options_page.dart';
+import 'package:screenshot_memory/pages/edit_options/edit_options_bloc.dart';
 import 'package:sqflite/sqflite.dart';
 
 class ScreenshotMemory {

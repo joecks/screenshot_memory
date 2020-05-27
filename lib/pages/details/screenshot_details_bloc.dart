@@ -1,5 +1,9 @@
+import 'dart:html';
+
 import 'package:flutter/material.dart';
 import 'package:rxdart/subjects.dart';
+import 'package:screenshot_memory/pages/edit_options/edit_options_bloc.dart';
+import 'package:screenshot_memory/pages/edit_options/edit_options_page.dart';
 import 'package:screenshot_memory/repositories/DatabaseRepository.dart';
 
 class ScreenshotsDetailsParameters {
@@ -10,11 +14,19 @@ class ScreenshotsDetailsParameters {
 class ScreenshotDetailsBloc {
   Stream<ScreenshotMemory> get memories => _screenshotsMemoryStream.stream;
   final _screenshotsMemoryStream = BehaviorSubject<ScreenshotMemory>();
+  final ScreenshotsDetailsParameters _parameters;
+  final BuildContext _context;
 
   ScreenshotDetailsBloc(DatabaseRepository databaseRepository,
-      ScreenshotsDetailsParameters parameters) {
-    databaseRepository.screenshotMemory(parameters.screenshotId).then((it) {
+      this._parameters, this._context) {
+    databaseRepository.screenshotMemory(_parameters.screenshotId).then((it) {
       _screenshotsMemoryStream.add(it);
     });
+  }
+
+  onActionPressed(MenuAction action) {
+    if (action == MenuAction.edit) {
+        Navigator.of(_context).pushNamed(EditOptionsPage.routeName, arguments: EditOptionsArguments.editExisting(_parameters.screenshotId))
+    }
   }
 }
