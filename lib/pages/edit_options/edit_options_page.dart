@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:extended_image/extended_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
@@ -7,6 +8,8 @@ import 'package:provider/provider.dart';
 import 'package:screenshot_memory/pages/edit_options/edit_options_bloc.dart';
 import 'package:screenshot_memory/views/strings.dart';
 import 'package:screenshot_memory/widgets/widgetFactories.dart';
+
+final _editorState = GlobalKey<ExtendedImageEditorState>();
 
 class EditOptionsPage extends StatelessWidget {
   static const routeName = "/edit";
@@ -28,44 +31,60 @@ class EditOptionsPage extends StatelessWidget {
             onActionPressed: bloc.onActionPressed,
             title: FlatButton(
               child: ThemedText(
-                "menuaction_done",
+                "menuaction_save",
                 textTheme: Theme.of(context).textTheme.headline6,
                 capitalization: Capitalization.all_caps,
               ),
               onPressed: () {
-                bloc.onDonePressed();
+                final editorState = _editorState.currentState;
+                bloc.onSavePressed(
+                    editorState.getCropRect(), editorState.rawImageData);
               },
             )),
         body: SingleChildScrollView(
-          child: SafeArea(
-            child: Column(
-              children: <Widget>[
-                ScreenshotImagePreview(bloc),
-                TagsWithHeader(bloc),
-                StreamBuilder<String>(
-                    stream: bloc.name,
-                    builder: (context, snapshot) {
-                      return EditTextWithHeader(
-                        "screemshot_preview_title_name",
-                        (newString) => bloc.onNameTyped(newString),
-                        text: snapshot.data,
-                      );
-                    }),
-                StreamBuilder<String>(
-                  stream: bloc.description,
-                  builder: (context, snapshot) {
-                    return EditTextWithHeader(
-                      "screemshot_preview_title_description",
-                      (newString) => bloc.onDescriptionTyped(newString),
-                      expandable: true,
-                      text: snapshot.data,
-                    );
-                  }
-                ),
-              ],
-            ),
-          ),
+          child: SafeArea(child: EditTextSubPage(bloc: bloc)),
         ));
+  }
+}
+
+class EditTextSubPage extends StatelessWidget {
+  const EditTextSubPage({
+    Key key,
+    @required this.bloc,
+  }) : super(key: key);
+
+  final EditOptionsBloc bloc;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: <Widget>[
+        ScreenshotImageCrop(
+          bloc,
+          height: 350,
+        ),
+        TagsWithHeader(bloc),
+        StreamBuilder<String>(
+            stream: bloc.name,
+            builder: (context, snapshot) {
+              return EditTextWithHeader(
+                "screemshot_preview_title_name",
+                (newString) => bloc.onNameTyped(newString),
+                text: snapshot.data,
+              );
+            }),
+        StreamBuilder<String>(
+            stream: bloc.description,
+            builder: (context, snapshot) {
+              return EditTextWithHeader(
+                "screemshot_preview_title_description",
+                (newString) => bloc.onDescriptionTyped(newString),
+                expandable: true,
+                text: snapshot.data,
+              );
+            }),
+      ],
+    );
   }
 }
 
@@ -160,31 +179,36 @@ class EditTextWithHeader extends StatelessWidget {
   }
 }
 
-class ScreenshotImagePreview extends StatelessWidget {
-  const ScreenshotImagePreview(
+class ScreenshotImageCrop extends StatelessWidget {
+  const ScreenshotImageCrop(
     this._bloc, {
+    this.width,
+    this.height,
     Key key,
   }) : super(key: key);
 
   final EditOptionsBloc _bloc;
+  final double height;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
+      initialData: _bloc.imageValue,
       stream: _bloc.image,
       builder: (BuildContext context, AsyncSnapshot<File> snapshot) {
         if (snapshot.data == null) {
+          // TODO replace with spinner
           return ThemedText("Loading");
         } else {
-          return Container(
-            padding: EdgeInsets.all(16),
-            height: 350,
-            alignment: Alignment.center,
-            child: Image.file(
-              snapshot.data,
-              fit: BoxFit.contain,
-            ),
+          var extendedImage = ExtendedImage.file(
+            snapshot.data,
+            fit: BoxFit.contain,
+            mode: ExtendedImageMode.editor,
+            enableLoadState: true,
+            extendedImageEditorKey: _editorState,
           );
+          return Container(width: width, height: height, child: extendedImage);
         }
       },
     );

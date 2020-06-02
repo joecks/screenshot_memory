@@ -25,19 +25,12 @@ class ScreenshotDetailsPage extends StatelessWidget {
         body: StreamBuilder<ScreenshotMemory>(
             stream: bloc.memories,
             builder: (context, snapshot) {
-              var screenWidth = MediaQuery.of(context).size.width;
-              var screenshotMemory = snapshot.data;
+              final screenWidth = MediaQuery.of(context).size.width;
+              final screenWidthCap = screenWidth > 500.0 ? 800.0 : 400.0;
+              final screenshotMemory = snapshot.data;
               return SingleChildScrollView(
                 child: Column(
                   children: [
-                    if (screenshotMemory != null &&
-                        screenshotMemory.tags != null &&
-                        screenshotMemory.tags.isNotEmpty)
-                      Container(
-                        alignment: Alignment.topLeft,
-                        padding: EdgeInsets.all(16),
-                        child: buildTagsRow(screenshotMemory.tags),
-                      ),
                     if (screenshotMemory != null)
                       Container(
                           alignment: Alignment.topLeft,
@@ -48,7 +41,15 @@ class ScreenshotDetailsPage extends StatelessWidget {
                           )),
                     if (screenshotMemory != null)
                       buildFadeInImage(
-                          snapshot.data, null, min(screenWidth, 400)),
+                          snapshot.data, null, min(screenWidth, screenWidthCap)),
+                    if (screenshotMemory != null &&
+                        screenshotMemory.tags != null &&
+                        screenshotMemory.tags.isNotEmpty)
+                      Container(
+                        alignment: Alignment.topLeft,
+                        padding: EdgeInsets.all(16),
+                        child: buildTagsRow(screenshotMemory.tags),
+                      ),
                     if (screenshotMemory != null &&
                         screenshotMemory.description.isNotEmpty)
                       Container(

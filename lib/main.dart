@@ -133,10 +133,6 @@ Route _createRoute(RouteSettings settings, TrackNavigation observer) {
       return _routes[settings.name].call(context, settings.arguments);
     },
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      print(
-          "$name observer.isPopping ${observer.isPopping}, observer.isPushing ${observer.isPushing}");
-
-
       var begin = Offset(0.0, 1.0);
       var end = Offset.zero;
       var curve = Curves.ease;

@@ -1,9 +1,14 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
+import 'package:file_chooser/file_chooser.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_file_picker/flutter_document_picker.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:screenshot_memory/pages/details/screenshot_details.dart';
 import 'package:screenshot_memory/pages/details/screenshot_details_bloc.dart';
+import 'package:screenshot_memory/pages/edit_options/edit_options_bloc.dart';
+import 'package:screenshot_memory/pages/edit_options/edit_options_page.dart';
 import 'package:screenshot_memory/repositories/DatabaseRepository.dart';
 
 class ListScreenshotMemoriesBloc {
@@ -31,8 +36,29 @@ class ListScreenshotMemoriesBloc {
     databaseRepository.onResume();
   }
 
+  onMenuActionClicked(MenuAction action) {
+    if (action == MenuAction.add) {
+      if (Platform.isAndroid || Platform.isIOS) {
+        FlutterDocumentPicker.openDocument().then((value) {
+          if (value != null) {
+            Navigator.pushNamed(_buildContext, EditOptionsPage.routeName,
+                arguments: EditOptionsArguments.newScreenShot(value));
+          }
+        });
+      } else {
+        showOpenPanel().then((value) {
+          if (value != null && !value.canceled && value.paths.isNotEmpty) {
+            Navigator.pushNamed(_buildContext, EditOptionsPage.routeName,
+                arguments: EditOptionsArguments.newScreenShot(value.paths[0]));
+          }
+        });
+      }
+    }
+  }
+
   void onItemClicked(id) {
     Navigator.pushNamed(_buildContext, ScreenshotDetailsPage.routeName,
-        arguments: ScreenshotsDetailsParameters(id)).then((value) => databaseRepository.onResume());
+            arguments: ScreenshotsDetailsParameters(id))
+        .then((value) => databaseRepository.onResume());
   }
 }

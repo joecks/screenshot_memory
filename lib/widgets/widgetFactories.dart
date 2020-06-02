@@ -15,6 +15,8 @@ extension MenuActionExtension on MenuAction {
         return Icons.crop;
       case MenuAction.close:
         return Icons.close;
+      case MenuAction.add:
+        return Icons.add;
     }
     throw ("${this} is not implemented yet");
   }
@@ -49,6 +51,7 @@ Widget buildFadeInImage(ScreenshotMemory item, double height, double width) {
       placeholder: AssetImage("assets/gifs/image_placeholder.gif"),
       height: height,
       width: width,
+      key: ObjectKey(item.path),
       fit: BoxFit.cover,
     ),
   );

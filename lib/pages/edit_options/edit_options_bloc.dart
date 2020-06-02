@@ -1,11 +1,13 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:screenshot_memory/pages/list/list_screenshot_memories_page.dart';
 import 'package:screenshot_memory/repositories/DatabaseRepository.dart';
+import 'package:screenshot_memory/widgets/image_utils.dart';
 
-enum MenuAction { alarm, edit, crop, close }
+enum MenuAction { alarm, edit, crop, close, add }
 
 class EditOptionsArguments {
   final String imagePath;
@@ -66,12 +68,10 @@ class EditOptionsBloc {
 
   final List<MenuAction> menuActions = <MenuAction>[
     MenuAction.alarm,
-    MenuAction.edit,
-    MenuAction.crop,
-    MenuAction.close
   ];
 
   Stream<File> get image => _imageController.stream;
+  File get imageValue => _imageController.value;
   Stream<Map<Tag, bool>> get tags => _tagsController.stream;
   Stream<String> get name => _nameController.stream;
   Stream<String> get description => _descriptionController.stream;
@@ -98,10 +98,24 @@ class EditOptionsBloc {
   }
 
   void onActionPressed(MenuAction action) {
-    // TODO
+    if (action == MenuAction.crop) {}
   }
 
-  void onDonePressed() {
+  void onSavePressed(Rect cropRect, Uint8List rawImageData) {
+    print("Will crop rect $cropRect");
+    cropImage(rawImageData, cropRect).then((value) {
+      if (value) imageCache.clear();
+      _saveScreenshotData();
+    });
+  }
+
+  Future<bool> cropImage(Uint8List rawImageData, Rect cropRect) async {
+    //TODO find out how to make isolate work with app channels? Maybe flutter_isolate / isolate_handler
+    return cropAndSaveImage(
+        ImageData(_path, rawImageData, cropRect));
+  }
+
+  bool _saveScreenshotData() {
     final tags =
         _tags.entries.where((it) => it.value).map((e) => e.key).toSet();
     if (_arguments.id == null) {
@@ -128,6 +142,8 @@ class EditOptionsBloc {
   void dispose() {
     _imageController.close();
     _tagsController.close();
+    _nameController.close();
+    _descriptionController.close();
   }
 
   onTagPressed(Tag selectedTag) {
