@@ -139,7 +139,10 @@ Route _createRoute(RouteSettings settings, TrackNavigation observer) {
 
       var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
 
-      if (observer.isPopping && name == ScreenshotDetailsPage.routeName) {
+      if (observer.isPopping &&
+              (name == ScreenshotDetailsPage.routeName ||
+                  name == EditOptionsPage.routeName) ||
+          (observer.isPushing && name == EditOptionsPage.routeName)) {
         return FadeTransition(
           opacity: animation,
           child: child,

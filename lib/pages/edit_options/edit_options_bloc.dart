@@ -52,8 +52,15 @@ class Tag {
       other is Tag ? color == other.color : this == other;
 }
 
+class TaggedImage {
+  final String tag;
+  final File imageFile;
+
+  TaggedImage(this.tag, this.imageFile);
+}
+
 class EditOptionsBloc {
-  final _imageController = BehaviorSubject<File>();
+  final _imageController = BehaviorSubject<TaggedImage>();
   final _tagsController = BehaviorSubject<Map<Tag, bool>>();
   final _nameController = BehaviorSubject<String>();
   final _descriptionController = BehaviorSubject<String>();
@@ -70,8 +77,8 @@ class EditOptionsBloc {
     MenuAction.alarm,
   ];
 
-  Stream<File> get image => _imageController.stream;
-  File get imageValue => _imageController.value;
+  Stream<TaggedImage> get image => _imageController.stream;
+  TaggedImage get imageValue => _imageController.value;
   Stream<Map<Tag, bool>> get tags => _tagsController.stream;
   Stream<String> get name => _nameController.stream;
   Stream<String> get description => _descriptionController.stream;
@@ -80,7 +87,7 @@ class EditOptionsBloc {
     if (_arguments.id == null) {
       _tagsController.add(_tags);
       _path = _arguments.imagePath;
-      _imageController.add(File(_path));
+      _imageController.add(TaggedImage(_path, File(_path)));
     } else {
       this._databaseRepository.screenshotMemory(_arguments.id).then((it) {
         it.tags.forEach((tag) {
@@ -92,7 +99,8 @@ class EditOptionsBloc {
         _name = it.name;
         _nameController.add(_name);
         _descriptionController.add(_description);
-        _imageController.add(File(_path));
+        _imageController
+            .add(TaggedImage("image_${_arguments.id}", File(_path)));
       });
     }
   }
@@ -111,8 +119,7 @@ class EditOptionsBloc {
 
   Future<bool> cropImage(Uint8List rawImageData, Rect cropRect) async {
     //TODO find out how to make isolate work with app channels? Maybe flutter_isolate / isolate_handler
-    return cropAndSaveImage(
-        ImageData(_path, rawImageData, cropRect));
+    return cropAndSaveImage(ImageData(_path, rawImageData, cropRect));
   }
 
   bool _saveScreenshotData() {

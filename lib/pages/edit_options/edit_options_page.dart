@@ -196,21 +196,63 @@ class ScreenshotImageCrop extends StatelessWidget {
     return StreamBuilder(
       initialData: _bloc.imageValue,
       stream: _bloc.image,
-      builder: (BuildContext context, AsyncSnapshot<File> snapshot) {
+      builder: (BuildContext context, AsyncSnapshot<TaggedImage> snapshot) {
         if (snapshot.data == null) {
-          // TODO replace with spinner
-          return ThemedText("Loading");
+          return Image.asset(
+            "assets/gifs/image_placeholder.gif",
+            width: width,
+            height: height,
+          );
         } else {
-          var extendedImage = ExtendedImage.file(
-            snapshot.data,
+          Widget extendedImage = ExtendedImage.file(
+            snapshot.data.imageFile,
             fit: BoxFit.contain,
             mode: ExtendedImageMode.editor,
             enableLoadState: true,
             extendedImageEditorKey: _editorState,
           );
-          return Container(width: width, height: height, child: extendedImage);
+
+          return Container(
+              width: width,
+              height: height,
+              child: Hero(
+                tag: snapshot.data.tag,
+                child: FastCroppingImage(snapshot.data.imageFile, extendedImage),
+              ));
         }
       },
+    );
+  }
+}
+
+class FastCroppingImage extends StatefulWidget {
+  final File file;
+  final Widget child;
+
+  const FastCroppingImage(
+    this.file,
+    this.child, {
+    Key key,
+  }) : super(key: key);
+
+  @override
+  _FastCroppingImageState createState() => _FastCroppingImageState();
+}
+
+class _FastCroppingImageState extends State<FastCroppingImage> {
+  var _loadExtendedImage = false;
+
+  @override
+  Widget build(BuildContext context) {
+    Future.delayed(const Duration(milliseconds: 250), () {
+      setState(() {
+        _loadExtendedImage = true;
+      });
+    });
+
+    return _loadExtendedImage ? widget.child : Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Image(image: FileImage(widget.file),),
     );
   }
 }

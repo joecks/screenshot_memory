@@ -29,13 +29,15 @@ class ScreenshotDetailsBloc {
 
   onActionPressed(MenuAction action) {
     if (action == MenuAction.edit) {
-      Navigator.of(_context).pushNamed(EditOptionsPage.routeName,
-          arguments:
-              EditOptionsArguments.editExisting(_parameters.screenshotId)).then((value) {
-                  if (value == true) {
-                    updateScreenshotMemory();
-                  }
-              });
+      Navigator.of(_context)
+          .pushNamed(EditOptionsPage.routeName,
+              arguments:
+                  EditOptionsArguments.editExisting(_parameters.screenshotId))
+          .then((value) {
+        if (value == true) {
+          updateScreenshotMemory();
+        }
+      });
     }
   }
 }
