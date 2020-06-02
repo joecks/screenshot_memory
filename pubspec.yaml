@@ -17,6 +17,7 @@ environment:
   sdk: ">=2.6.0 <3.0.0"
 
 dependencies:
+  flutter_isolate: ^1.0.0+14
   flutter:
     sdk: flutter
   flutter_localizations:
@@ -33,7 +34,8 @@ dependencies:
   file_chooser: ^0.1.2
   image:
   image_editor: ^0.6.0
-  isolate: ^2.0.3
+  loading_overlay: ^0.2.1
+ 
   
 
   # The following adds the Cupertino Icons font to your application.

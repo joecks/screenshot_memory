@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_isolate/flutter_isolate.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:screenshot_memory/pages/list/list_screenshot_memories_page.dart';
 import 'package:screenshot_memory/repositories/DatabaseRepository.dart';
@@ -64,6 +65,7 @@ class EditOptionsBloc {
   final _tagsController = BehaviorSubject<Map<Tag, bool>>();
   final _nameController = BehaviorSubject<String>();
   final _descriptionController = BehaviorSubject<String>();
+  final _loading = BehaviorSubject<bool>();
   final DatabaseRepository _databaseRepository;
   final BuildContext _context;
   final EditOptionsArguments _arguments;
@@ -82,8 +84,11 @@ class EditOptionsBloc {
   Stream<Map<Tag, bool>> get tags => _tagsController.stream;
   Stream<String> get name => _nameController.stream;
   Stream<String> get description => _descriptionController.stream;
+  Stream<bool> get loading => _loading.stream;
+  bool get loadingValue => _loading.value;
 
   EditOptionsBloc(this._databaseRepository, this._context, this._arguments) {
+    _loading.add(false);
     if (_arguments.id == null) {
       _tagsController.add(_tags);
       _path = _arguments.imagePath;
@@ -111,18 +116,42 @@ class EditOptionsBloc {
 
   void onSavePressed(Rect cropRect, Uint8List rawImageData) {
     print("Will crop rect $cropRect");
-    cropImage(rawImageData, cropRect).then((value) {
-      if (value) imageCache.clear();
-      _saveScreenshotData();
-    });
+    _loading.add(true);
+    cropImage(rawImageData, cropRect);
   }
 
-  Future<bool> cropImage(Uint8List rawImageData, Rect cropRect) async {
-    //TODO find out how to make isolate work with app channels? Maybe flutter_isolate / isolate_handler
-    return cropAndSaveImage(ImageData(_path, rawImageData, cropRect));
+  // var _handler = IsolateHandler();
+  void _onImageCropped(bool cropped) {
+    if (cropped) imageCache.clear();
+    // _handler.kill("cropImage");
+    _saveScreenshotData();
+    _loading.add(false);
+  } 
+
+  void cropImage(Uint8List rawImageData, Rect cropRect) {
+    FlutterIsolate.spawn(cropInBackground, [
+      _path,
+      rawImageData,
+      cropRect.left,
+      cropRect.top,
+      cropRect.right,
+      cropRect.bottom
+    ]).then((value) => print("received $value"));
+
+    // _handler.spawn<bool>(backgroundWork, name: "cropImage", onInitialized: () {
+    //   //[_path, rawImageData, cropRect]
+    //   _handler.send([
+    //     _path,
+    //     rawImageData,
+    //     cropRect.left,
+    //     cropRect.top,
+    //     cropRect.right,
+    //     cropRect.bottom
+    //   ], to: "cropImage");
+    // }, onReceive: _onImageCropped);
   }
 
-  bool _saveScreenshotData() {
+  void _saveScreenshotData() {
     final tags =
         _tags.entries.where((it) => it.value).map((e) => e.key).toSet();
     if (_arguments.id == null) {
@@ -151,6 +180,7 @@ class EditOptionsBloc {
     _tagsController.close();
     _nameController.close();
     _descriptionController.close();
+    _loading.close();
   }
 
   onTagPressed(Tag selectedTag) {
@@ -165,4 +195,21 @@ class EditOptionsBloc {
   onDescriptionTyped(String newString) {
     _description = newString;
   }
+}
+
+// void backgroundWork(SendPort context) {
+//   var messenger = HandledIsolate.initialize(context);
+
+//   messenger.listen((data) {
+//     final rect = Rect.fromLTRB(data[2], data[3], data[4], data[5]);
+//     print("received $rect");
+//     cropAndSaveImage(ImageData(data[0], data[1], rect))
+//         .then((value) => messenger.send(value));
+//   });
+// }
+
+Future<bool> cropInBackground(List<dynamic> data) async {
+  final rect = Rect.fromLTRB(data[2], data[3], data[4], data[5]);
+  print("received $rect");
+  return await cropAndSaveImage(ImageData(data[0], data[1], rect));
 }

@@ -4,6 +4,7 @@ import 'package:extended_image/extended_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
+import 'package:loading_overlay/loading_overlay.dart';
 import 'package:provider/provider.dart';
 import 'package:screenshot_memory/pages/edit_options/edit_options_bloc.dart';
 import 'package:screenshot_memory/views/strings.dart';
@@ -24,26 +25,37 @@ class EditOptionsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bloc = EditOptionsBloc(Provider.of(context), context, arguments);
+    final page = EditTextSubPage(bloc: bloc);
 
-    return Scaffold(
-        appBar: defaultAppBar(context,
-            actions: bloc.menuActions,
-            onActionPressed: bloc.onActionPressed,
-            title: FlatButton(
-              child: ThemedText(
-                "menuaction_save",
-                textTheme: Theme.of(context).textTheme.headline6,
-                capitalization: Capitalization.all_caps,
-              ),
-              onPressed: () {
-                final editorState = _editorState.currentState;
-                bloc.onSavePressed(
-                    editorState.getCropRect(), editorState.rawImageData);
-              },
-            )),
-        body: SingleChildScrollView(
-          child: SafeArea(child: EditTextSubPage(bloc: bloc)),
-        ));
+    return StreamBuilder<bool>(
+        initialData: bloc.loadingValue,
+        stream: bloc.loading,
+        builder: (context, snapshot) {
+          return LoadingOverlay(
+            isLoading: snapshot.data,
+            child: Scaffold(
+                appBar: defaultAppBar(context,
+                    actions: bloc.menuActions,
+                    onActionPressed: bloc.onActionPressed,
+                    title: FlatButton(
+                      child: ThemedText(
+                        "menuaction_save",
+                        textTheme: Theme.of(context).textTheme.headline6,
+                        capitalization: Capitalization.all_caps,
+                      ),
+                      onPressed: () {
+                        final editorState = _editorState.currentState;
+                        bloc.onSavePressed(editorState.getCropRect(),
+                            editorState.rawImageData);
+                      },
+                    )),
+                body: SingleChildScrollView(
+                  child: SafeArea(
+                    child: page,
+                  ),
+                )),
+          );
+        });
   }
 }
 
@@ -217,7 +229,8 @@ class ScreenshotImageCrop extends StatelessWidget {
               height: height,
               child: Hero(
                 tag: snapshot.data.tag,
-                child: FastCroppingImage(snapshot.data.imageFile, extendedImage),
+                child:
+                    FastCroppingImage(snapshot.data.imageFile, extendedImage),
               ));
         }
       },
@@ -250,9 +263,13 @@ class _FastCroppingImageState extends State<FastCroppingImage> {
       });
     });
 
-    return _loadExtendedImage ? widget.child : Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Image(image: FileImage(widget.file),),
-    );
+    return _loadExtendedImage
+        ? widget.child
+        : Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Image(
+              image: FileImage(widget.file),
+            ),
+          );
   }
 }
