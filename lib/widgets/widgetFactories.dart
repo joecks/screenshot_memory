@@ -44,14 +44,15 @@ AppBar defaultAppBar(BuildContext context,
 }
 
 Widget buildFadeInImage(ScreenshotMemory item, double height, double width) {
+  var imageFile = File(item.path);
   return Hero(
     tag: "image_${item.id}",
     child: FadeInImage(
-      image: FileImage(File(item.path)),
+      image: FileImage(imageFile),
       placeholder: AssetImage("assets/gifs/image_placeholder.gif"),
       height: height,
       width: width,
-      key: ObjectKey(item.path),
+      key: ObjectKey(imageFile),
       fit: BoxFit.cover,
     ),
   );

@@ -104,13 +104,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  flutter_file_picker:
+  flutter_document_picker:
     dependency: "direct main"
     description:
-      name: flutter_file_picker
+      name: flutter_document_picker
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.0.3"
+    version: "4.0.0"
   flutter_i18n:
     dependency: "direct main"
     description:
@@ -119,7 +119,7 @@ packages:
     source: hosted
     version: "0.14.0"
   flutter_isolate:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: flutter_isolate
       url: "https://pub.dartlang.org"
@@ -177,6 +177,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.16.1"
+  isolate_handler:
+    dependency: "direct main"
+    description:
+      name: isolate_handler
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.3.0"
   loading_overlay:
     dependency: "direct main"
     description:

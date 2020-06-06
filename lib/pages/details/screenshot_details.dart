@@ -23,7 +23,7 @@ class ScreenshotDetailsPage extends StatelessWidget {
         appBar: defaultAppBar(context,
             actions: [MenuAction.edit], onActionPressed: bloc.onActionPressed),
         body: StreamBuilder<ScreenshotMemory>(
-            stream: bloc.memories,
+            stream: bloc.memory,
             builder: (context, snapshot) {
               final screenWidth = MediaQuery.of(context).size.width;
               final screenWidthCap = screenWidth > 500.0 ? 800.0 : 400.0;

@@ -45,7 +45,7 @@ class EditOptionsPage extends StatelessWidget {
                       ),
                       onPressed: () {
                         final editorState = _editorState.currentState;
-                        bloc.onSavePressed(editorState.getCropRect(),
+                        bloc.onSavePressed(editorState.getCropRect(), editorState.image.width, editorState.image.height,
                             editorState.rawImageData);
                       },
                     )),
@@ -258,9 +258,7 @@ class _FastCroppingImageState extends State<FastCroppingImage> {
   @override
   Widget build(BuildContext context) {
     Future.delayed(const Duration(milliseconds: 250), () {
-      setState(() {
-        _loadExtendedImage = true;
-      });
+      if (this.mounted) setState(() => _loadExtendedImage = true);
     });
 
     return _loadExtendedImage

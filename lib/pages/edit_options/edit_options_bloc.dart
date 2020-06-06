@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_isolate/flutter_isolate.dart';
+import 'package:isolate_handler/isolate_handler.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:screenshot_memory/pages/list/list_screenshot_memories_page.dart';
 import 'package:screenshot_memory/repositories/DatabaseRepository.dart';
@@ -78,6 +80,7 @@ class EditOptionsBloc {
   final List<MenuAction> menuActions = <MenuAction>[
     MenuAction.alarm,
   ];
+  final _handler = IsolateHandler();
 
   Stream<TaggedImage> get image => _imageController.stream;
   TaggedImage get imageValue => _imageController.value;
@@ -114,44 +117,36 @@ class EditOptionsBloc {
     if (action == MenuAction.crop) {}
   }
 
-  void onSavePressed(Rect cropRect, Uint8List rawImageData) {
+  void onSavePressed(
+      Rect cropRect, int imageWidth, int imageHeight, Uint8List rawImageData) {
     print("Will crop rect $cropRect");
     _loading.add(true);
-    cropImage(rawImageData, cropRect);
+    if (imageWidth == cropRect.width && imageHeight == cropRect.height) {
+      _saveScreenshotDataAndPop();
+    } else {
+      _cropImage(rawImageData, cropRect, andThen: _saveScreenshotDataAndPop);
+    }
   }
 
-  // var _handler = IsolateHandler();
-  void _onImageCropped(bool cropped) {
-    if (cropped) imageCache.clear();
-    // _handler.kill("cropImage");
-    _saveScreenshotData();
-    _loading.add(false);
-  } 
-
-  void cropImage(Uint8List rawImageData, Rect cropRect) {
-    FlutterIsolate.spawn(cropInBackground, [
-      _path,
-      rawImageData,
-      cropRect.left,
-      cropRect.top,
-      cropRect.right,
-      cropRect.bottom
-    ]).then((value) => print("received $value"));
-
-    // _handler.spawn<bool>(backgroundWork, name: "cropImage", onInitialized: () {
-    //   //[_path, rawImageData, cropRect]
-    //   _handler.send([
-    //     _path,
-    //     rawImageData,
-    //     cropRect.left,
-    //     cropRect.top,
-    //     cropRect.right,
-    //     cropRect.bottom
-    //   ], to: "cropImage");
-    // }, onReceive: _onImageCropped);
+  void _cropImage(Uint8List rawImageData, Rect cropRect,
+      {@required Function() andThen}) {
+    _handler.spawn<bool>(backgroundWork, name: "cropImage", onInitialized: () {
+      _handler.send([
+        _path,
+        (Platform.isAndroid || Platform.isIOS) ? null : rawImageData,
+        cropRect.left,
+        cropRect.top,
+        cropRect.right,
+        cropRect.bottom
+      ], to: "cropImage");
+    }, onReceive: (_) {
+      print("did crop");
+      imageCache.clear();
+      andThen();
+    });
   }
 
-  void _saveScreenshotData() {
+  void _saveScreenshotDataAndPop() {
     final tags =
         _tags.entries.where((it) => it.value).map((e) => e.key).toSet();
     if (_arguments.id == null) {
@@ -197,19 +192,13 @@ class EditOptionsBloc {
   }
 }
 
-// void backgroundWork(SendPort context) {
-//   var messenger = HandledIsolate.initialize(context);
+void backgroundWork(SendPort context) {
+  var messenger = HandledIsolate.initialize(context);
 
-//   messenger.listen((data) {
-//     final rect = Rect.fromLTRB(data[2], data[3], data[4], data[5]);
-//     print("received $rect");
-//     cropAndSaveImage(ImageData(data[0], data[1], rect))
-//         .then((value) => messenger.send(value));
-//   });
-// }
-
-Future<bool> cropInBackground(List<dynamic> data) async {
-  final rect = Rect.fromLTRB(data[2], data[3], data[4], data[5]);
-  print("received $rect");
-  return await cropAndSaveImage(ImageData(data[0], data[1], rect));
+  messenger.listen((data) {
+    final rect = Rect.fromLTRB(data[2], data[3], data[4], data[5]);
+    print("received $rect");
+    cropAndSaveImage(ImageData(data[0], data[1], rect))
+        .then((_) => messenger.send(_));
+  });
 }

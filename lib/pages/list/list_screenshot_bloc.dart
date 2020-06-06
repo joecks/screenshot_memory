@@ -3,7 +3,7 @@ import 'dart:io' show Platform;
 
 import 'package:file_chooser/file_chooser.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_file_picker/flutter_document_picker.dart';
+import 'package:flutter_document_picker/flutter_document_picker.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:screenshot_memory/pages/details/screenshot_details.dart';
 import 'package:screenshot_memory/pages/details/screenshot_details_bloc.dart';

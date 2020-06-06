@@ -11,7 +11,7 @@ class ScreenshotsDetailsParameters {
 
 class ScreenshotDetailsBloc {
   final DatabaseRepository _databaseRepository;
-  Stream<ScreenshotMemory> get memories => _screenshotsMemoryStream.stream;
+  Stream<ScreenshotMemory> get memory => _screenshotsMemoryStream.stream;
   final _screenshotsMemoryStream = BehaviorSubject<ScreenshotMemory>();
   final ScreenshotsDetailsParameters _parameters;
   final BuildContext _context;

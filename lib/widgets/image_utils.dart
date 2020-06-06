@@ -15,44 +15,31 @@ class ImageData {
   ImageData(this.path, this.rawImageData, this.cropRect);
 }
 
-Future<bool> cropAndSaveImage(ImageData config) async {
-    final img.Image original = findDecoder(config.rawImageData, config.path).call(config.rawImageData);
-    print("Will check image original ${original.width}x${original.height}");
-    final cropRect = config.cropRect;
-    final rawImageData = config.rawImageData;
-    if (original.height == cropRect.height &&
-        original.width == original.width) {
-      // Do not do anything, nothing changed
-      print("Same as before will return false");
-      return false;
-    } else {
-      Uint8List result;
-      if (Platform.isIOS || Platform.isAndroid) {
-        ImageEditorOption option = ImageEditorOption();
-        option.addOption(ClipOption.fromRect(cropRect));
-        result = await ImageEditor.editImage(
-          image: rawImageData,
-          imageEditorOption: option,
-        );
-      } else {
-        print("Will start cropping $original");
-        final copy = img.copyCrop(
-            original,
-            cropRect.left.toInt(),
-            cropRect.top.toInt(),
-            cropRect.width.toInt(),
-            cropRect.height.toInt());
-        // final copy = await lb.run<img.Image, img.Image>();
-        final encoder = findEncoder(config.path);
-        print(
-            "Will use new crop copy ${copy.width}x${copy.height} with $encoder");
-        result = encoder.call(copy);
-        print("Will write image back");
-      }
-      await File(config.path).writeAsBytes(result);
-      print("Will return");
-      return true;
-    }
+Future cropAndSaveImage(ImageData config) async {
+  final cropRect = config.cropRect;
+  Uint8List result;
+  if (Platform.isIOS || Platform.isAndroid) {
+    ImageEditorOption option = ImageEditorOption();
+    option.addOption(ClipOption.fromRect(cropRect));
+    result = await ImageEditor.editFileImage(
+      file: File(config.path),
+      imageEditorOption: option,
+    );
+  } else {
+    assert(config.rawImageData != null);
+    final img.Image original =
+        findDecoder(config.rawImageData, config.path).call(config.rawImageData);
+    print("Will start cropping $original");
+    final copy = img.copyCrop(original, cropRect.left.toInt(),
+        cropRect.top.toInt(), cropRect.width.toInt(), cropRect.height.toInt());
+    // final copy = await lb.run<img.Image, img.Image>();
+    final encoder = findEncoder(config.path);
+    print("Will use new crop copy ${copy.width}x${copy.height} with $encoder");
+    result = encoder.call(copy);
+    print("Will write image back");
+  }
+  File(config.path).writeAsBytesSync(result);
+  print("Will return after writing");
 }
 
 List<int> Function(img.Image) findEncoder(String imagePath) {
@@ -90,7 +77,7 @@ img.Image Function(List<int>) findDecoder(List<int> data, String imagePath) {
       return img.decodeGif;
     case '.jpeg':
     case '.jpg':
-    return img.decodeJpg;
+      return img.decodeJpg;
     default:
       return null;
   }
